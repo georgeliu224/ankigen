@@ -20,9 +20,8 @@ def _format_compounds(compounds: list[DictEntry]) -> str:
     return "; ".join(parts)
 
 
-def run_pipeline(
+def extract_vocabulary(
     input_path: str,
-    output: IO[str],
     language: str,
     top_n: int,
     level_min: int,
@@ -30,9 +29,11 @@ def run_pipeline(
     include_ungraded: bool,
     dict_path: Path | None = None,
     hsk_path: Path | None = None,
-) -> int:
-    """Run the full ankigen pipeline. Returns count of words not found in dictionary."""
+) -> tuple[list[FlashcardEntry], int]:
+    """Run stages 1-5: parse, tokenize, frequency, filter, dictionary lookup.
 
+    Returns (entries, not_found_count).
+    """
     # Stage 1: Parse
     parser = get_parser(input_path)
     text = parser.parse(input_path)
@@ -88,8 +89,31 @@ def run_pipeline(
                 compounds=_format_compounds(compounds),
             ))
 
-    # Stage 6: Export
+    return entries, not_found
+
+
+def run_pipeline(
+    input_path: str,
+    output: IO[str],
+    language: str,
+    top_n: int,
+    level_min: int,
+    level_max: int,
+    include_ungraded: bool,
+    dict_path: Path | None = None,
+    hsk_path: Path | None = None,
+) -> int:
+    """Run the full ankigen pipeline. Returns count of words not found in dictionary."""
+    entries, not_found = extract_vocabulary(
+        input_path=input_path,
+        language=language,
+        top_n=top_n,
+        level_min=level_min,
+        level_max=level_max,
+        include_ungraded=include_ungraded,
+        dict_path=dict_path,
+        hsk_path=hsk_path,
+    )
     exporter = TsvExporter()
     exporter.export(entries, output)
-
     return not_found

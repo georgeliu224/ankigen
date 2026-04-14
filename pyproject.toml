@@ -13,6 +13,7 @@ dependencies = [
     "beautifulsoup4>=4.12",
     "pdfplumber>=0.10",
     "lxml>=5.0",
+    "genanki>=0.13",
 ]
 
 [project.scripts]

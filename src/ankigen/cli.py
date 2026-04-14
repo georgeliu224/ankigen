@@ -2,7 +2,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from ankigen.pipeline import run_pipeline
+from ankigen.exporters import get_export_format
+from ankigen.exporters.apkg import ApkgExporter
+from ankigen.pipeline import extract_vocabulary, run_pipeline
 
 _DATA_DIR = Path(__file__).parent / "languages" / "mandarin" / "data"
 CEDICT_PATH = _DATA_DIR / "cedict_ts.u8"
@@ -52,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="mandarin",
         help="Language module to use (default: mandarin)",
     )
+    parser.add_argument(
+        "--deck-name",
+        default=None,
+        help="Name for the Anki deck (default: derived from input filename). "
+             "Only used for .apkg output.",
+    )
     return parser
 
 
@@ -64,23 +72,43 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.output:
-        output = open(args.output, "w", encoding="utf-8")
-    else:
-        output = sys.stdout
+    fmt = get_export_format(args.output)
 
     try:
-        not_found = run_pipeline(
-            input_path=args.input,
-            output=output,
-            language=args.lang,
-            top_n=args.top,
-            level_min=args.hsk_min,
-            level_max=args.hsk_max,
-            include_ungraded=not args.no_ungraded,
-            dict_path=CEDICT_PATH,
-            hsk_path=HSK_PATH,
-        )
+        if fmt == "apkg":
+            entries, not_found = extract_vocabulary(
+                input_path=args.input,
+                language=args.lang,
+                top_n=args.top,
+                level_min=args.hsk_min,
+                level_max=args.hsk_max,
+                include_ungraded=not args.no_ungraded,
+                dict_path=CEDICT_PATH,
+                hsk_path=HSK_PATH,
+            )
+            deck_name = args.deck_name or Path(args.input).stem
+            exporter = ApkgExporter(deck_name=deck_name)
+            exporter.export(entries, args.output)
+        else:
+            if args.output:
+                output = open(args.output, "w", encoding="utf-8")
+            else:
+                output = sys.stdout
+            try:
+                not_found = run_pipeline(
+                    input_path=args.input,
+                    output=output,
+                    language=args.lang,
+                    top_n=args.top,
+                    level_min=args.hsk_min,
+                    level_max=args.hsk_max,
+                    include_ungraded=not args.no_ungraded,
+                    dict_path=CEDICT_PATH,
+                    hsk_path=HSK_PATH,
+                )
+            finally:
+                if args.output and output is not sys.stdout:
+                    output.close()
 
         if not_found > 0:
             print(
@@ -98,9 +126,6 @@ def main() -> None:
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-    finally:
-        if args.output and output is not sys.stdout:
-            output.close()
 
 
 def _update_dict() -> None:
