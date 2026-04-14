@@ -11,14 +11,13 @@ def test_export_header():
     header = output.readline()
     assert header.startswith("#")
     assert "word" in header
-    assert "pinyin" in header
-    assert "definition" in header
+    assert "meaning" in header
     assert "hsk_level" in header
     assert "frequency" in header
     assert "compounds" in header
 
 
-def test_export_single_entry():
+def test_export_combines_pinyin_and_definition():
     exporter = TsvExporter()
     entries = [
         FlashcardEntry(
@@ -37,11 +36,36 @@ def test_export_single_entry():
     assert len(lines) == 2
     fields = lines[1].strip().split("\t")
     assert fields[0] == "学习"
+    assert fields[1] == "xué xí<br>to learn; to study"
+    assert fields[2] == "1"
+    assert fields[3] == "47"
+    assert fields[4] == "学生 (xué shēng) student"
+
+
+def test_export_pinyin_only():
+    exporter = TsvExporter()
+    entries = [
+        FlashcardEntry("学习", "xué xí", "", "1", 47, ""),
+    ]
+    output = io.StringIO()
+    exporter.export(entries, output)
+    output.seek(0)
+    lines = output.readlines()
+    fields = lines[1].strip().split("\t")
     assert fields[1] == "xué xí"
-    assert fields[2] == "to learn; to study"
-    assert fields[3] == "1"
-    assert fields[4] == "47"
-    assert fields[5] == "学生 (xué shēng) student"
+
+
+def test_export_definition_only():
+    exporter = TsvExporter()
+    entries = [
+        FlashcardEntry("学习", "", "to learn", "1", 47, ""),
+    ]
+    output = io.StringIO()
+    exporter.export(entries, output)
+    output.seek(0)
+    lines = output.readlines()
+    fields = lines[1].strip().split("\t")
+    assert fields[1] == "to learn"
 
 
 def test_export_multiple_entries():
@@ -67,4 +91,4 @@ def test_export_ungraded_level():
     output.seek(0)
     lines = output.readlines()
     fields = lines[1].strip().split("\t")
-    assert fields[3] == "—"
+    assert fields[2] == "—"

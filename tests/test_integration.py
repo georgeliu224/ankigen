@@ -47,14 +47,15 @@ def test_full_pipeline_txt(tmp_path):
     # Check that output is tab-separated with correct column count
     for line in data_lines:
         fields = line.split("\t")
-        assert len(fields) == 6, f"Expected 6 columns, got {len(fields)}: {line}"
+        assert len(fields) == 5, f"Expected 5 columns, got {len(fields)}: {line}"
 
-    # Check that a known word has pinyin
+    # Check that a known word has pinyin and definition combined
     for line in data_lines:
         fields = line.split("\t")
         if fields[0] == "学习":
-            assert fields[1] == "xué xí"
-            assert "to learn" in fields[2] or "to study" in fields[2]
+            assert "xué xí" in fields[1]
+            assert "to learn" in fields[1] or "to study" in fields[1]
+            assert "<br>" in fields[1]
             break
 
 
