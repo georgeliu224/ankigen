@@ -1,0 +1,10 @@
+# Data files (downloaded via scripts/download_data.py or ankigen update-dict)
+src/ankigen/languages/mandarin/data/cedict_ts.u8
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.venv/
